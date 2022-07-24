@@ -55,40 +55,52 @@ abstract class ChatService<T : Item> {
 class Messanger : ChatService<Chats>() {
 
     fun getUnreadMessageCount(read: Boolean = false): String {
-        var count = 0
-        for (chat in element) {
-            count = chat.messages.count( {it.unread == read} )
+        val countMessages = element.flatMap {
+            it.messages
         }
-        return "Колличество чатов с непрочитанными сообщениями = $count"
-    }
+            .count { it.unread == read && it.import == true }
 
-    //посмотреть как работает функция
-    fun getChat() {
-       println( element.filter { it.messages.size > 0 })
-    }
-
-
-    fun findMessages(idChats: Int) {
-        for (chart in element) {
-            for (message in chart.messages) {
-            message.unread = true
+        val countChat = element.count { chat ->
+            chat.messages.any() { it.unread == read }
         }
-            print(chart.messages)
-            println(chart.messages.last().id)
-            println(chart.messages.size)
-
-        }
+        return " Количество не прочитанных сообщений равно : $countMessages, в $countChat чатах"
     }
 
-    fun createMessage(id: Int, idPerson: Int, message: Messages) {
-        element.find { it.id == id && it.idPerson == idPerson }?.messages?.add(message)
+
+    fun getChat(chat: Chats) {
+        element.find { it.id == chat.id && it.messages.size > 0}
+            ?.let {
+                println(chat)
+            }
+            ?: run { println("Сообщений нет") }
     }
 
-    fun createChart(id: Int, chat: Chats) {
-       // element.f { it.idPerson != id }?.add(chat)
-      element += chat
-       /* element.find { it.idPerson == id }
-        println("Чат с этим человеком уже есть" )*/
+
+    fun findMessages(chat: Chats) {
+
+        element.find { it.id == chat.id }
+            ?.let {
+                println("Чат id= ${chat.id} ")
+                println("Колличество сообщений ${element.find { it.id == chat.id }?.messages?.count()}")
+                println("Последнее сообщение - ${element.find { it.id == chat.id }?.messages?.find { it.id.last }}")
+                element.find{it.id == chat.id}?.messages?.find{it.unread == false}?.unread=true
+            }
+            ?: run { println("Чата с таким id ${chat.id} нет") }
+           }
+
+    fun createMessage(chat: Chats, message: Messages) {
+        element.find { it.id == chat.id && it.idPerson == chat.idPerson }
+            ?.run { messages.add(message) }
+            ?: let {
+                println("Такого чата нет")
+            }
+    }
+
+
+    fun createChart(chat: Chats) {
+        element.find { it.idPerson == chat.idPerson }
+            ?.let { println("Чат с этим пользователем есть") }
+            ?: run { element += chat }
     }
 }
 
@@ -98,18 +110,21 @@ fun main() {
     val message3 = Messages(3, false, true, "third", false)
     val message4 = Messages(4, false, true, "fourth", false)
 
-    val chat = Chats(1, 2, messages = mutableListOf(message1, message2))
+    val chat = Chats(1, 1, messages = mutableListOf(message1, message2))
     val chat2 = Chats(2, 2, messages = mutableListOf(message3, message4))
     val chat3 = Chats(3, 3, messages = mutableListOf())
 
     val service = Messanger()
-    service.createChart(1, chat)
-    service.createChart(2, chat2)
-    //service.createChart(2,chat3)
-    println(service.getUnreadMessageCount())
+    service.createChart(chat)
+    //service.createChart(chat2)
+    //service.createChart(chat3)
+    //println(service.getUnreadMessageCount())
     /*println(service.findMessages(1))
     println(service.getUnreadMessageCount())*/
-    //service.getChat()
+    // service.getChat()
+    service.findMessages(chat)
+    println(service.getUnreadMessageCount())
+
 }
 
 
