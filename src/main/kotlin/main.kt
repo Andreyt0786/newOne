@@ -29,10 +29,6 @@ abstract class ChatService<T : Item> {
 
     var element = mutableListOf<T>()
 
-    /*fun add(elem: T): T {
-        element += elem
-        return element.last()
-    }*/
 
     fun delete(elem: T) {
         element.remove(elem)
@@ -54,7 +50,7 @@ abstract class ChatService<T : Item> {
 
 class Messanger : ChatService<Chats>() {
 
-    fun getUnreadMessageCount(read: Boolean = false): String {
+    fun getUnreadMessageCount(read: Boolean = false): Int {
         val countMessages = element.flatMap {
             it.messages
         }
@@ -63,72 +59,78 @@ class Messanger : ChatService<Chats>() {
         val countChat = element.count { chat ->
             chat.messages.any() { it.unread == read }
         }
-        return " Количество непрочитанных сообщений равно : $countMessages, в $countChat чатах"
+
+        return countMessages
     }
 
 
-    fun getChat() {
-        element.forEach {
-            if (it.messages.size > 0) {
-                println(it)
-            }
+    fun getChat(): List<Chats> {
+        val elementList = element.filter {
+            it.messages.size > 0
         }
-
+        return elementList
     }
 
+    fun findMessages(chat: Chats): List<Messages> {
 
-    fun findMessages(chat: Chats) {
-
-        element.find { it.id == chat.id }
+        val elementList = element.find { it.id == chat.id }
             ?.run {
-                println("Чат id= ${chat.id} ")
-                println("Колличество сообщений ${element.find { it.id == chat.id }?.messages?.count()}")
-                println("Последнее сообщение - ${element.find { it.id == chat.id }?.messages?.last()?.id}")
-                println("Последнее сообщение - ${element.find { it.id == chat.id }?.messages?.last()}")
-                element.find { it.id == chat.id }?.messages?.find { !it.unread }?.unread = true
+                element.flatMap {
+                    it.messages
+                }
+                    .filter { it.unread == false && it.import == true }
             }
-            ?: println("Чата с id ${chat.id} нет")
+            ?: throw PostNotFoundException("Чата с id ${chat.id} нет")
+          element.find { it.id == chat.id }?.messages?.filter{!it.unread }?.map { it.unread = true }
+        return elementList
     }
 
-    fun createMessage(chat: Chats, message: Messages) {
+    fun createMessage(chat: Chats, message: Messages): Messages? {
+
         element.find { it.id == chat.id && it.idPerson == chat.idPerson }
             ?.run {
                 messages.add(message)
-                println(element)
             }
-            ?: println("Такого чата нет")
-
+            ?: throw PostNotFoundException("Такого чата нет")
+        return element.find { it.id == chat.id }?.messages?.last()
     }
 
 
-    fun createChart(chat: Chats) {
+    fun createChart(chat: Chats): Chats {
         element.find { it.idPerson == chat.idPerson }
-            ?.let { println("Чат с этим пользователем есть") }
+            ?.run { throw PostNotFoundException("Чат с этим пользователем есть") }
             ?: element.add(chat)
+        return element.last()
     }
 }
 
+
+class PostNotFoundException(message: String) : RuntimeException(message)
+
 fun main() {
     val message1 = Messages(1, true, false, "first", false)
-    val message2 = Messages(2, false, true, "sec", false)
-    val message3 = Messages(3, false, true, "third", false)
-    val message4 = Messages(4, false, true, "fourth", false)
+    val message2 = Messages(2, true, false, "sec", false)
+    val message3 = Messages(3, false, true, "third", true)
+    val message4 = Messages(4, false, true, "fourth", true)
 
     val chat = Chats(1, 1, messages = mutableListOf(message1, message2))
     val chat2 = Chats(2, 2, messages = mutableListOf(message3, message4))
     val chat3 = Chats(3, 3, messages = mutableListOf())
 
     val service = Messanger()
-    //service.createChart(chat)
-    //service.createChart(chat)
+    service.createChart(chat)
     //service.createChart(chat2)
+    //println(service.createChart(chat))
+    service.createMessage(chat, message4)
+    println(service.getUnreadMessageCount())
     //service.createChart(chat3)
     //println(service.getUnreadMessageCount())
-    /*println(service.findMessages(1))
-    println(service.getUnreadMessageCount())*/
-    service.getChat()
-    //service.findMessages(chat)
+    //println(service.findMessages(chat))
     // println(service.getUnreadMessageCount())
+    //println(service.getChat())
+    println(service.findMessages(chat))
+    println(service.getUnreadMessageCount())
+    println(service.findMessages(chat))
     //println(service.getNotEmptyChats())
     //service.findMessages(chat3)
 }
